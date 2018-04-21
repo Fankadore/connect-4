@@ -1,10 +1,12 @@
 "use strict";
 
+const canvas = document.querySelector('canvas');
+const ctx = canvas.getContext('2d');
+
 const TILESIZE = 48;
 const COLUMNS = 7;
 const ROWS = 6;
 let GRID_COLOUR = '#0000a0';
-let BACKGROUND_COLOUR = '#ffffff';
 let PLAYER1_COLOUR = '#ff0000';
 let PLAYER2_COLOUR = '#ffff00';
 
@@ -12,15 +14,18 @@ const WIDTH = COLUMNS * TILESIZE;
 const HEIGHT = ROWS * TILESIZE;
 const TOKENS = [];
 let currentPlayer = 1;
-
-// Canvas
-const canvas = document.querySelector('canvas');
-const ctx = canvas.getContext('2d');
-resetGame();
+let winner = 0;
+let score1 = 0;
+let score2 = 0;
 
 window.addEventListener('click', (event) => {
     if (event.y - canvas.offsetTop < HEIGHT) {
-        placeToken(Math.floor((event.x - canvas.offsetLeft) / TILESIZE));
+        if (winner) {
+            resetGame();
+        }
+        else {
+            placeToken(Math.floor((event.x - canvas.offsetLeft) / TILESIZE));
+        }
     }
 });
 
@@ -36,16 +41,8 @@ function placeToken(x) {
     }
 
     // Check if current column is full
-    if (y === -1) {
-        // Check if all columns are full - If so game is a draw - Else try again
-        for (let loopX = 0; loopX < 7; loopX++) {
-            for (let loopY = 0; loopY < 6; loopY++) {
-                if (!TOKENS[loopX][loopY]) {
-                    return console.log("That column is full.");
-                }
-            }
-        }
-        return console.log("Game is a draw.");
+    if (y < 0) {
+        return console.log("That column is full.");
     }
 
     // Place token in empty slot
@@ -63,12 +60,26 @@ function placeToken(x) {
     // Check if the player has connected 4 tokens
     checkConnectFour(x, y, currentPlayer)
 
-    // Swap Turns
+    // Swap the active player
     if (currentPlayer === 1) {
         currentPlayer = 2;
     }
     else {
         currentPlayer = 1;
+    }
+    drawUITokens();
+
+    // Check if all columns are full - If so game is a draw
+    if (y === 0) {
+        let counter = 0;
+        for (let loopX = 0; loopX < 7; loopX++) {
+            for (let loopY = 0; loopY < 6; loopY++) {
+                if (!TOKENS[loopX][loopY]) {
+                    counter++;
+                }
+            }
+        }
+        if (counter === 0) return winGame(-1); // Game is a Draw
     }
 }
 
@@ -138,12 +149,32 @@ function checkNextToken(x, y, directionX, directionY, player, counter) {
 }
 
 function winGame(player) {
-    ctx.font = '40px Arial';
-    ctx.textAlign = 'center';
+    winner = player;
+
+    // Increase the score
+    if (winner === 1) {
+        score1++;
+    }
+    else if (winner === 2) {
+        score2++;
+    }
+    drawScore();
+    
     ctx.fillStyle = '#000000';
-    ctx.fillRect(0, TILESIZE * 2, WIDTH, HEIGHT - (TILESIZE * 4));
+    ctx.fillRect(0, (HEIGHT / 2) - (TILESIZE / 2), WIDTH, TILESIZE);
+
+    ctx.font = `${TILESIZE / 2}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
     ctx.fillStyle = '#ffffff';
-    ctx.fillText(`PLAYER ${player} WINS!`, WIDTH / 2, HEIGHT / 2);
+    if (winner === -1) {
+        // Game is a Draw Message
+        ctx.fillText('GAME IS A DRAW!', WIDTH / 2, HEIGHT / 2);
+    }
+    else {
+        // Player Wins Message
+        ctx.fillText(`PLAYER ${winner} WINS!`, WIDTH / 2, HEIGHT / 2);
+    }
 }
 
 function resetGame() {
@@ -154,19 +185,60 @@ function resetGame() {
     // Draw UI
     ctx.fillStyle = GRID_COLOUR;
     ctx.fillRect(0, HEIGHT, WIDTH, TILESIZE * 2);
-    ctx.fillStyle = '#000033'
-    ctx.fillRect(0 + 10, HEIGHT + (TILESIZE / 2), WIDTH - (TILESIZE / 2), (TILESIZE * 2) - (TILESIZE / 2));
+    ctx.clearRect(0 + (TILESIZE / 2), HEIGHT + (TILESIZE / 2), WIDTH - TILESIZE, (TILESIZE * 1.5));
+    drawScore();
+    
+    // Draw the UI Tokens - These are turn indicators
+    drawUITokens();
 
     // Draw Grid and reset Tokens
     ctx.lineWidth = 5;
     ctx.strokeStyle = GRID_COLOUR;
-    ctx.fillStyle = BACKGROUND_COLOUR;
     for (let x = 0; x < COLUMNS; x++) {
         TOKENS[x] = [];
         for (let y = 0; y < ROWS; y++) {
             TOKENS[x][y] = 0;
-            ctx.fillRect(x * TILESIZE, y * TILESIZE, TILESIZE, TILESIZE);
             ctx.strokeRect(x * TILESIZE, y * TILESIZE, TILESIZE, TILESIZE);
         }
     }
+    winner = 0;
 }
+
+function drawUITokens() {
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = '#000000';
+
+    // Player 1 UI Token
+    if (currentPlayer === 1) {
+        ctx.fillStyle = PLAYER1_COLOUR;
+    }
+    else {
+        ctx.fillStyle = '#000000';
+    }
+    ctx.beginPath();
+    ctx.arc(0 + (TILESIZE * 1.25), HEIGHT + (TILESIZE * 1.25), TILESIZE / 2, 0, 2 * Math.PI);
+    ctx.fill();
+    ctx.stroke();
+
+    // Player 2 UI Token
+    if (currentPlayer === 2) {
+        ctx.fillStyle = PLAYER2_COLOUR;
+    }
+    else {
+        ctx.fillStyle = '#000000';
+    }
+    ctx.beginPath();
+    ctx.arc(WIDTH - (TILESIZE * 1.25), HEIGHT + (TILESIZE * 1.25), TILESIZE / 2, 0, 2 * Math.PI);
+    ctx.fill();
+    ctx.stroke();
+}
+
+function drawScore() {
+    ctx.clearRect(TILESIZE * 2, HEIGHT + (TILESIZE / 2), WIDTH - (TILESIZE * 4), TILESIZE * 1.5);
+    ctx.font = `${TILESIZE}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.fillStyle = GRID_COLOUR;
+    ctx.fillText(`${score1} - ${score2}`, WIDTH / 2, HEIGHT + (TILESIZE * 1.5));
+}
+
+resetGame();

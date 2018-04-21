@@ -1,4 +1,5 @@
 canvas {
-    border: 5px solid #0000ff;
-    background: #fff;
+    border: 5px solid #0000a0;
+    border-bottom: none;
+    background: #ffffff;
 }
