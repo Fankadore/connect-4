@@ -18,13 +18,20 @@ let winner = 0;
 let score1 = 0;
 let score2 = 0;
 
-window.addEventListener('click', (event) => {
-    if (event.y - canvas.offsetTop < HEIGHT) {
+function getMouesPosition(event) {
+    let mouseX = event.offsetX * canvas.width / canvas.clientWidth || 0;
+    let mouseY = event.offsetY * canvas.height / canvas.clientHeight || 0;
+    return { mouseX, mouseY };
+}
+
+canvas.addEventListener('click', (event) => {
+    let { mouseX, mouseY } = getMouesPosition(event);
+    if (mouseY < HEIGHT) {
         if (winner) {
             resetGame();
         }
         else {
-            placeToken(Math.floor((event.x - canvas.offsetLeft) / TILESIZE));
+            placeToken(Math.floor(mouseX / TILESIZE));
         }
     }
 });
